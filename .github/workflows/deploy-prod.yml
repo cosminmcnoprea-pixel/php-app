@@ -17,6 +17,7 @@ env:
   DEV_PROJECT_ID: global-reach-media-dev
   PROD_PROJECT_ID: global-reach-media-prod
   SERVICE_NAME: php-app
+  STATIC_BUCKET: global-reach-media-static-prod
 
 jobs:
   promote-and-deploy:
@@ -28,6 +29,9 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -49,6 +53,10 @@ jobs:
           docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.DEV_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.image_tag }} \
                      ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
+
+      - name: Upload static files to GCS
+        run: |
+          gsutil -m rsync -r -d public/static gs://${{ env.STATIC_BUCKET }}/
 
       - name: Deploy to Cloud Run
         run: |

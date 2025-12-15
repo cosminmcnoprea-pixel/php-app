@@ -51,10 +51,8 @@ jobs:
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
 
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.REGION }}
-          project_id: ${{ env.PROD_PROJECT_ID }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
-          flags: --allow-unauthenticated
+        run: |
+          gcloud run services update ${{ env.SERVICE_NAME }} \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROD_PROJECT_ID }}

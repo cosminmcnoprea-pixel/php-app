@@ -1,0 +1,60 @@
+name: Deploy to Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag from dev to promote (e.g., main-abc1234)'
+        required: true
+        type: string
+      version:
+        description: 'Version tag for prod (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGION: europe-west3
+  DEV_PROJECT_ID: global-reach-media-dev
+  PROD_PROJECT_ID: global-reach-media-prod
+  SERVICE_NAME: php-app
+
+jobs:
+  promote-and-deploy:
+    name: Promote to Prod
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Pull image from dev
+        run: |
+          docker pull ${{ env.REGION }}-docker.pkg.dev/${{ env.DEV_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.image_tag }}
+
+      - name: Tag and push to prod
+        run: |
+          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.DEV_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.image_tag }} \
+                     ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROD_PROJECT_ID }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
+          flags: --allow-unauthenticated

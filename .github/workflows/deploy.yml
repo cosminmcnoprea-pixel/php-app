@@ -10,6 +10,7 @@ env:
   REGION: europe-west3
   PROJECT_ID: global-reach-media-dev
   SERVICE_NAME: php-app
+  STATIC_BUCKET: global-reach-media-static-dev
 
 jobs:
   build-and-deploy:
@@ -45,6 +46,10 @@ jobs:
         run: |
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ env.IMAGE_TAG }} .
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Upload static files to GCS
+        run: |
+          gsutil -m rsync -r -d public/static gs://${{ env.STATIC_BUCKET }}/
 
       - name: Deploy to Cloud Run
         run: |

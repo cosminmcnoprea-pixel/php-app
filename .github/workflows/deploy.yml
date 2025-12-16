@@ -16,6 +16,9 @@ jobs:
   build-and-deploy:
     name: Build and Deploy to Dev
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
     permissions:
       contents: read
       id-token: write
@@ -29,6 +32,18 @@ jobs:
           BRANCH_NAME=${GITHUB_REF_NAME//\//-}
           SHORT_SHA=${GITHUB_SHA::7}
           echo "IMAGE_TAG=${BRANCH_NAME}-${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run unit and integration tests
+        run: composer test
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

@@ -15,6 +15,9 @@ env:
   SERVICE_NAME: php-app
   STATIC_BUCKET: global-reach-media-static-dev
   DOCKER_REPO: docker-repo
+  # This points at the shared actions repo in the org.
+  # Use a tag like v1 once you cut releases; `main` is fine while iterating.
+  ACTIONS_REF: main
 
 jobs:
   build-and-deploy:
@@ -32,7 +35,7 @@ jobs:
         # Pulls the repo on the runner so we can build the container + upload static assets
 
       - name: Deploy pipeline (test -> build -> deploy -> smoke)
-        uses: ./.github/actions/cloudrun-service-dev
+        uses: cosminmcnoprea-pixel/gh-actions/.github/actions/cloudrun-service-dev@${{ env.ACTIONS_REF }}
         with:
           workload-identity-provider: ${{ secrets.WIF_PROVIDER_DEV }}
           service-account: ${{ secrets.WIF_SERVICE_ACCOUNT_DEV }}

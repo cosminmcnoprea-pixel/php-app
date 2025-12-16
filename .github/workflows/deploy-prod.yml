@@ -20,6 +20,8 @@ env:
   SERVICE_NAME: php-app
   STATIC_BUCKET: global-reach-media-static-prod
   DOCKER_REPO: docker-repo
+  # Shared actions repo ref. Prefer a tag like v1 for prod.
+  ACTIONS_REF: main
 
 jobs:
   promote-and-deploy:
@@ -36,7 +38,7 @@ jobs:
         # Needed for static asset upload. The container image is promoted via docker pull/tag/push.
 
       - name: Deploy pipeline (promote -> deploy -> smoke)
-        uses: ./.github/actions/cloudrun-service-prod
+        uses: cosminmcnoprea-pixel/gh-actions/.github/actions/cloudrun-service-prod@${{ env.ACTIONS_REF }}
         with:
           workload-identity-provider: ${{ secrets.WIF_PROVIDER_PROD }}
           service-account: ${{ secrets.WIF_SERVICE_ACCOUNT_PROD }}

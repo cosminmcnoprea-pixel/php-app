@@ -69,3 +69,27 @@ jobs:
             --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ env.IMAGE_TAG }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }}
+
+      - name: Fetch service URL
+        id: fetch-url
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "SERVICE_URL=${SERVICE_URL}" >> $GITHUB_ENV
+          echo "service_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
+
+      - name: Post-deploy health check
+        run: |
+          echo "Checking ${SERVICE_URL}"
+          for i in {1..5}; do
+            if curl -fsSL "${SERVICE_URL}" | grep -q "PHP-FPM on Cloud Run"; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt ${i} failed; retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed"
+          exit 1

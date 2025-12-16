@@ -1,6 +1,22 @@
 <?php
 // Simple starter script to confirm PHP + Nginx + Cloud Run integration.
-require_once __DIR__ . '/bootstrap.php';
+$bootstrapCandidates = [
+    __DIR__ . '/bootstrap.php',
+    __DIR__ . '/../bootstrap.php', 
+];
+
+$bootstrapLoaded = false;
+foreach ($bootstrapCandidates as $candidate) {
+    if (is_file($candidate)) {
+        require_once $candidate;
+        $bootstrapLoaded = true;
+        break;
+    }
+}
+
+if (!$bootstrapLoaded) {
+    throw new RuntimeException('Unable to locate bootstrap.php');
+}
 
 use App\Service\AppConfig;
 use App\Service\SystemStatusService;

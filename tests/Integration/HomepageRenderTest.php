@@ -54,8 +54,15 @@ class HomepageRenderTest extends TestCase
         }
 
         ob_start();
-        include __DIR__ . '/../../public/index.php';
-        $html = (string) ob_get_clean();
+        try {
+            include __DIR__ . '/../../public/index.php';
+            $html = (string) ob_get_clean();
+        } catch (\Throwable $e) {
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            throw $e;
+        }
 
         foreach (array_keys($env) as $key) {
             putenv($key);

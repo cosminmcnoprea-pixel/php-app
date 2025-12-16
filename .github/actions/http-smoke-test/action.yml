@@ -1,0 +1,42 @@
+name: "HTTP: smoke test"
+description: "Basic post-deploy check: curl a URL and verify it contains expected text."
+
+inputs:
+  url:
+    description: "Base URL to check"
+    required: true
+  expected:
+    description: "String to look for in the response body"
+    required: true
+  path:
+    description: "Optional path to append (e.g. /healthz)"
+    required: false
+    default: ""
+  retries:
+    description: "Number of attempts"
+    required: false
+    default: "5"
+  sleep:
+    description: "Seconds between retries"
+    required: false
+    default: "5"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Smoke test
+      shell: bash
+      run: |
+        URL="${{ inputs.url }}${{ inputs.path }}"
+        echo "Checking ${URL}"
+        for ((i=1; i<=${{ inputs.retries }}; i++)); do
+          if curl -fsSL "${URL}" | grep -q "${{ inputs.expected }}"; then
+            echo "Smoke test passed"
+            exit 0
+          fi
+          echo "Attempt ${i} failed; sleeping ${{ inputs.sleep }}s..."
+          sleep "${{ inputs.sleep }}"
+        done
+        echo "Smoke test failed"
+        exit 1
+

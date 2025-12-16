@@ -19,6 +19,7 @@ env:
   PROD_PROJECT_ID: global-reach-media-prod
   SERVICE_NAME: php-app
   STATIC_BUCKET: global-reach-media-static-prod
+  DOCKER_REPO: docker-repo
 
 jobs:
   promote-and-deploy:
@@ -34,68 +35,17 @@ jobs:
         uses: actions/checkout@v4
         # Needed for static asset upload. The container image is promoted via docker pull/tag/push.
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Deploy pipeline (promote -> deploy -> smoke)
+        uses: ./.github/actions/cloudrun-service-prod
         with:
-          # Separate provider/service account for prod.
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER_PROD }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT_PROD }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        # Provides gcloud + gsutil.
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-        # Authenticate docker to both dev and prod registries in this region.
-
-      - name: Pull image from dev
-        run: |
-          # Pull the exact dev image tag that we want to promote.
-          docker pull ${{ env.REGION }}-docker.pkg.dev/${{ env.DEV_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.image_tag }}
-
-      - name: Tag and push to prod
-        run: |
-          # Re-tag dev image into the prod registry with a human-friendly version (vX.Y.Z).
-          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.DEV_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.image_tag }} \
-                     ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }}
-
-      - name: Upload static files to GCS
-        run: |
-          # Keep prod bucket in sync with the repository version of static assets.
-          gsutil -m rsync -r -d public/static gs://${{ env.STATIC_BUCKET }}/
-
-      - name: Deploy to Cloud Run
-        run: |
-          # Point the prod Cloud Run service at the newly promoted version tag.
-          gcloud run services update ${{ env.SERVICE_NAME }} \
-            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROD_PROJECT_ID }}/docker-repo/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROD_PROJECT_ID }}
-
-      - name: Fetch service URL
-        id: fetch-url
-        run: |
-          # Grab the live URL for the smoke test below.
-          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROD_PROJECT_ID }} \
-            --format='value(status.url)')
-          echo "SERVICE_URL=${SERVICE_URL}" >> $GITHUB_ENV
-          echo "service_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
-
-      - name: Post-deploy health check
-        run: |
-          # Fast smoke test after rollout: confirms the service is answering on the public URL.
-          echo "Checking ${SERVICE_URL}"
-          for i in {1..5}; do
-            if curl -fsSL "${SERVICE_URL}" | grep -q "PHP-FPM on Cloud Run"; then
-              echo "Health check passed"
-              exit 0
-            fi
-            echo "Attempt ${i} failed; retrying in 5s..."
-            sleep 5
-          done
-          echo "Health check failed"
-          exit 1
+          workload-identity-provider: ${{ secrets.WIF_PROVIDER_PROD }}
+          service-account: ${{ secrets.WIF_SERVICE_ACCOUNT_PROD }}
+          region: ${{ env.REGION }}
+          dev-project-id: ${{ env.DEV_PROJECT_ID }}
+          prod-project-id: ${{ env.PROD_PROJECT_ID }}
+          docker-repo: ${{ env.DOCKER_REPO }}
+          service-name: ${{ env.SERVICE_NAME }}
+          source-tag: ${{ inputs.image_tag }}
+          target-tag: ${{ inputs.version }}
+          static-bucket: ${{ env.STATIC_BUCKET }}
+          smoke-expected: "PHP-FPM on Cloud Run"

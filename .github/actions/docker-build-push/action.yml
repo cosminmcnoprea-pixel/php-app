@@ -1,0 +1,27 @@
+name: "Docker: build + push"
+description: "Builds a Docker image and pushes it to a registry."
+
+inputs:
+  image:
+    description: "Full image name (including tag)"
+    required: true
+  context:
+    description: "Build context"
+    required: false
+    default: "."
+  dockerfile:
+    description: "Path to Dockerfile"
+    required: false
+    default: "Dockerfile"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build image
+      shell: bash
+      run: docker build -f "${{ inputs.dockerfile }}" -t "${{ inputs.image }}" "${{ inputs.context }}"
+
+    - name: Push image
+      shell: bash
+      run: docker push "${{ inputs.image }}"
+

@@ -21,6 +21,7 @@ $staticBucketUrl = getenv('STATIC_BUCKET_URL') ?: '';
     <h1>PHP-FPM on Cloud Run</h1>
     <p>This is a minimal PHP application served by Nginx and PHP-FPM.</p>
     <ul>
+        <li>Project ID: <code><?php echo htmlspecialchars($project_id, ENT_QUOTES, 'UTF-8'); ?></code></li>
         <li>Environment: <strong><?php echo htmlspecialchars($env, ENT_QUOTES, 'UTF-8'); ?></strong></li>
         <li>DB Host: <code><?php echo htmlspecialchars($dbHost, ENT_QUOTES, 'UTF-8'); ?></code></li>
         <li>DB Name: <code><?php echo htmlspecialchars($dbName, ENT_QUOTES, 'UTF-8'); ?></code></li>

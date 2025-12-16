@@ -15,6 +15,8 @@ COPY supervisord.conf /etc/supervisord.conf
 # Application code
 WORKDIR /var/www/html
 COPY public/ /var/www/html/
+COPY src/ /var/www/html/src/
+COPY bootstrap.php /var/www/html/bootstrap.php
 
 EXPOSE 8080
 

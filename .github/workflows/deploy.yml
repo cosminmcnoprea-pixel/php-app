@@ -16,9 +16,6 @@ jobs:
   build-and-deploy:
     name: Build and Deploy to Dev
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
     permissions:
       contents: read
       id-token: write

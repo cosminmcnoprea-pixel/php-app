@@ -1,6 +1,6 @@
 <?php
 // Simple starter script to confirm PHP + Nginx + Cloud Run integration.
-require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 
 use App\Service\AppConfig;
 use App\Service\SystemStatusService;

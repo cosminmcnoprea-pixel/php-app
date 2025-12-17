@@ -7,6 +7,15 @@ on:
     # Dev deploys are automatic on main to keep the env up to date.
   workflow_dispatch:
     # Manual trigger is handy for reruns / debugging without a new commit.
+    inputs:
+      build_method:
+        description: "How to build the image"
+        required: true
+        type: choice
+        options:
+          - docker
+          - cloud-build
+        default: docker
 
 env:
   # Keep env-specific envs in one place
@@ -45,4 +54,5 @@ jobs:
           static-bucket: ${{ env.STATIC_BUCKET }}
           php-working-directory: .
           smoke-expected: "PHP-FPM on Cloud Run"
-          build-method: "cloud-build"
+          # Default is docker on push. When manually triggered, use the selected input.
+          build-method: ${{ github.event_name == 'workflow_dispatch' && inputs.build_method || 'docker' }}

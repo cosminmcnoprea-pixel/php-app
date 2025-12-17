@@ -45,3 +45,4 @@ jobs:
           static-bucket: ${{ env.STATIC_BUCKET }}
           php-working-directory: .
           smoke-expected: "PHP-FPM on Cloud Run"
+          build-method: "cloud-build"
